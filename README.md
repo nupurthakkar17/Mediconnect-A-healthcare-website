@@ -32,7 +32,7 @@ MediConnect uses two independent services:
 
 The two services communicate through HTTP, making them independently testable and deployable.
 
-## 🚀 Setup
+## 🚀 Setup - 
 
 ### 1. Clone the repository
 
