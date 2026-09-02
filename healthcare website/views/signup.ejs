@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+  <title>Sign Up | MediConnect</title>
+</head>
+<body>
+  <%- include('partials/nav') %>
+
+  <div class="page-wrap" style="max-width:440px;">
+    <div class="card">
+      <h2>Create your account</h2>
+      <p class="subtitle">Book appointments, track your health, and more.</p>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <form action="/signup" method="POST" novalidate>
+        <div class="field">
+          <label for="name">Full name</label>
+          <input type="text" name="name" id="name" placeholder="Enter your name" value="<%= typeof name !== 'undefined' ? name : '' %>" required minlength="2">
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" name="email" id="email" placeholder="you@example.com" value="<%= typeof email !== 'undefined' ? email : '' %>" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="password-row">
+            <input type="password" name="password" id="password" placeholder="At least 6 characters" required minlength="6">
+            <button type="button" class="toggle-visibility" data-target="password">Show</button>
+          </div>
+          <div class="hint">Use at least 6 characters.</div>
+        </div>
+        <div class="field">
+          <label for="confirm_password">Confirm password</label>
+          <div class="password-row">
+            <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter your password" required minlength="6">
+            <button type="button" class="toggle-visibility" data-target="confirm_password">Show</button>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Sign up</button>
+      </form>
+      <p class="link-row">Already have an account? <a href="/login">Login here</a></p>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.toggle-visibility').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var input = document.getElementById(btn.dataset.target);
+        var isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.textContent = isPassword ? 'Hide' : 'Show';
+      });
+    });
+
+    document.querySelector('form').addEventListener('submit', function (e) {
+      var pw = document.getElementById('password').value;
+      var confirm = document.getElementById('confirm_password').value;
+      if (pw !== confirm) {
+        e.preventDefault();
+        alert("Passwords don't match.");
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Health Reports | MediConnect</title>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+
+  <div class="page-wrap" style="max-width:640px;">
+    <div class="card">
+      <h1>Your Health Reports</h1>
+      <p class="subtitle">Only visible to you.</p>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <% if (reports.length > 0) { %>
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Description</th><th></th></tr></thead>
+          <tbody>
+            <% reports.forEach(report => { %>
+              <tr>
+                <td><%= report.report_name %></td>
+                <td><%= report.report_description %></td>
+                <td><a href="/healthreports/download/<%= report.id %>">Download</a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <p class="subtitle">No reports uploaded yet.</p>
+      <% } %>
+
+      <h3 style="margin-top:24px;">Upload a New Report</h3>
+      <form action="/healthreports/upload" method="POST" enctype="multipart/form-data">
+        <div class="field">
+          <label for="report_name">Report Name</label>
+          <input type="text" name="report_name" id="report_name" required>
+        </div>
+        <div class="field">
+          <label for="report_description">Description</label>
+          <textarea name="report_description" id="report_description" rows="3" required></textarea>
+        </div>
+        <div class="field">
+          <label for="report">File (PDF, PNG, or JPEG - max 10MB)</label>
+          <input type="file" name="report" id="report" accept=".pdf,.png,.jpg,.jpeg" required>
+        </div>
+        <button type="submit" class="btn-primary">Upload Report</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

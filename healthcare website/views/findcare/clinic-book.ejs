@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Book Free Checkup | MediConnect</title>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+
+  <div class="page-wrap" style="max-width:480px;">
+    <div class="card">
+      <h1>Book a Free Checkup</h1>
+      <p class="subtitle"><%= clinic.name %> &mdash; <%= clinic.address %></p>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <form action="/findcare/clinics/<%= clinic.id %>/book" method="POST">
+        <div class="field">
+          <label for="name">Full Name</label>
+          <input type="text" name="name" id="name" required>
+        </div>
+        <div class="field">
+          <label for="contact">Contact Number</label>
+          <input type="tel" name="contact" id="contact" required pattern="[0-9+\-\s()]{7,15}">
+        </div>
+        <div class="field">
+          <label for="preferredDate">Preferred Date</label>
+          <input type="date" name="preferredDate" id="preferredDate" required min="<%= new Date().toISOString().split('T')[0] %>">
+        </div>
+        <div class="field">
+          <label for="preferredTime">Preferred Time</label>
+          <input type="time" name="preferredTime" id="preferredTime" required>
+        </div>
+        <button type="submit" class="btn-primary">Confirm Booking</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

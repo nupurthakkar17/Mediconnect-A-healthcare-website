@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Symptom Checker | MediConnect</title>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+
+  <div class="page-wrap" style="max-width:720px;">
+    <div class="card">
+      <h1>Symptom Checker</h1>
+      <p class="subtitle">Tell us what you're experiencing. Our model compares it against 41 common conditions and shows you the most likely matches.</p>
+      <div class="alert alert-error">
+        This is not a medical diagnosis and shouldn't be treated as one. It's a starting point only &mdash; please see a doctor for anything serious or persistent.
+      </div>
+
+      <% if (serviceDown) { %>
+        <div class="alert alert-error" style="margin-top:12px;">
+          The symptom checker is temporarily unavailable. Please try again in a moment, or <a href="/appointments/book-appointment">book an appointment directly</a>.
+        </div>
+      <% } else { %>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert alert-error" style="margin-top:12px;"><%= error %></div>
+        <% } %>
+
+        <form action="/symptom/check" method="POST" id="symptomForm">
+          <label for="symptomSearch" style="display:block; font-weight:600; margin:18px 0 6px;">Search symptoms</label>
+          <input
+            type="text"
+            id="symptomSearch"
+            placeholder="Start typing, e.g. 'fever', 'chest pain', 'rash'…"
+            autocomplete="off"
+            style="width:100%; padding:11px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); font-family:var(--font-body); font-size:0.95rem;"
+          >
+          <div id="symptomDropdown" style="position:relative;">
+            <div id="symptomDropdownList" style="display:none; position:absolute; z-index:10; top:4px; left:0; right:0; max-height:220px; overflow-y:auto; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); box-shadow:var(--shadow);"></div>
+          </div>
+
+          <div id="selectedChips" style="display:flex; flex-wrap:wrap; gap:8px; margin:14px 0;">
+            <% (selected || []).forEach(function(key) { %>
+              <% var opt = symptomOptions.find(function(o){ return o.key === key; }); %>
+              <span class="chip" data-key="<%= key %>">
+                <%= opt ? opt.label : key %>
+                <button type="button" class="chip-remove" aria-label="Remove">&times;</button>
+                <input type="hidden" name="symptoms" value="<%= key %>">
+              </span>
+            <% }); %>
+          </div>
+
+          <button type="submit" class="btn-primary" id="checkBtn" <%= (selected||[]).length === 0 ? 'disabled' : '' %>>
+            Check Symptoms
+          </button>
+        </form>
+
+        <% if (predictions && predictions.length > 0) { %>
+          <h3 style="margin-top:28px;">Possible conditions, ranked by confidence</h3>
+          <p class="subtitle" style="margin-bottom:16px;">Based on: <%= selected.map(function(k){ var o = symptomOptions.find(function(x){return x.key===k;}); return o ? o.label : k; }).join(', ') %></p>
+
+          <% predictions.forEach(function(p, i) { %>
+            <div class="result-card" style="flex-direction:column; align-items:stretch;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;"><%= i + 1 %>. <%= p.disease %></h3>
+                <span class="badge-available"><%= Math.round(p.confidence * 100) %>% match</span>
+              </div>
+              <div style="background:var(--border); border-radius:999px; height:6px; margin:10px 0;">
+                <div style="background:var(--brand); height:6px; border-radius:999px; width:<%= Math.round(p.confidence * 100) %>%;"></div>
+              </div>
+              <% if (p.description) { %>
+                <p class="meta"><%= p.description %></p>
+              <% } %>
+              <% if (p.precautions && p.precautions.length > 0) { %>
+                <p class="meta" style="margin-top:8px;"><strong>Suggested precautions:</strong> <%= p.precautions.join(', ') %></p>
+              <% } %>
+            </div>
+          <% }); %>
+
+          <a href="/appointments/book-appointment" class="btn-primary" style="display:inline-block; width:auto; padding:10px 20px; text-decoration:none; margin-top:14px;">Book an Appointment</a>
+        <% } %>
+
+      <% } %>
+    </div>
+  </div>
+
+  <script>
+    const ALL_SYMPTOMS = <%- JSON.stringify(symptomOptions || []) %>;
+    const searchInput = document.getElementById('symptomSearch');
+    const dropdown = document.getElementById('symptomDropdownList');
+    const chips = document.getElementById('selectedChips');
+    const checkBtn = document.getElementById('checkBtn');
+
+    function selectedKeys() {
+      return Array.from(chips.querySelectorAll('.chip')).map(c => c.dataset.key);
+    }
+
+    function renderDropdown(matches) {
+      if (matches.length === 0) { dropdown.style.display = 'none'; dropdown.innerHTML = ''; return; }
+      dropdown.innerHTML = matches.slice(0, 8).map(m =>
+        `<div class="symptom-option" data-key="${m.key}" style="padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border);">${m.label}</div>`
+      ).join('');
+      dropdown.style.display = 'block';
+    }
+
+    searchInput?.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) { dropdown.style.display = 'none'; return; }
+      const already = new Set(selectedKeys());
+      const matches = ALL_SYMPTOMS.filter(s => !already.has(s.key) && s.label.toLowerCase().includes(q));
+      renderDropdown(matches);
+    });
+
+    dropdown?.addEventListener('click', (e) => {
+      const item = e.target.closest('.symptom-option');
+      if (!item) return;
+      addSymptom(item.dataset.key);
+      searchInput.value = '';
+      dropdown.style.display = 'none';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#symptomDropdown') && e.target !== searchInput) {
+        dropdown.style.display = 'none';
+      }
+    });
+
+    function addSymptom(key) {
+      const opt = ALL_SYMPTOMS.find(s => s.key === key);
+      if (!opt || selectedKeys().includes(key)) return;
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.dataset.key = key;
+      chip.innerHTML = `${opt.label} <button type="button" class="chip-remove" aria-label="Remove">&times;</button><input type="hidden" name="symptoms" value="${key}">`;
+      chips.appendChild(chip);
+      checkBtn.disabled = false;
+    }
+
+    chips?.addEventListener('click', (e) => {
+      if (e.target.classList.contains('chip-remove')) {
+        e.target.closest('.chip').remove();
+        checkBtn.disabled = selectedKeys().length === 0;
+      }
+    });
+  </script>
+
+  <style>
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--brand-light); color: var(--brand-dark);
+      padding: 6px 10px 6px 14px; border-radius: 999px; font-size: 0.88rem; font-weight: 600;
+    }
+    .chip-remove {
+      background: none; border: none; cursor: pointer; color: var(--brand-dark);
+      font-size: 1.1rem; line-height: 1; padding: 0 2px;
+    }
+    .symptom-option:hover { background: var(--brand-light); }
+  </style>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Your Cart | MediConnect</title>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+
+  <div class="page-wrap" style="max-width:640px;">
+    <div class="card">
+      <h1>Your Cart</h1>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <% if (cart && cart.length > 0) { %>
+        <table class="data-table">
+          <thead>
+            <tr><th>Medicine</th><th>Price</th><th>Qty</th><th>Subtotal</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% cart.forEach(function(item) { %>
+              <tr>
+                <td><%= item.name %></td>
+                <td>₹<%= item.price.toFixed(2) %></td>
+                <td>
+                  <form action="/medicinedelivery/cart/update" method="POST" style="display:flex; gap:6px; align-items:center;">
+                    <input type="hidden" name="productId" value="<%= item.id %>">
+                    <input type="number" name="quantity" value="<%= item.quantity %>" min="0" style="width:60px; padding:6px;">
+                    <button type="submit" class="btn-primary" style="width:auto; padding:6px 12px; font-size:0.8rem;">Update</button>
+                  </form>
+                </td>
+                <td>₹<%= (item.price * item.quantity).toFixed(2) %></td>
+                <td>
+                  <form action="/medicinedelivery/cart/remove" method="POST">
+                    <input type="hidden" name="productId" value="<%= item.id %>">
+                    <button type="submit" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.85rem;">Remove</button>
+                  </form>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+
+        <div style="text-align:right; margin:16px 0; font-size:1.1rem; font-weight:700; color:var(--brand);">
+          Total: ₹<%= total.toFixed(2) %>
+        </div>
+
+        <form action="/medicinedelivery/order" method="POST">
+          <div class="field">
+            <label for="delivery_address">Delivery Address</label>
+            <input type="text" name="delivery_address" id="delivery_address" placeholder="House no, street, city, pincode" required minlength="8">
+          </div>
+          <button type="submit" class="btn-primary">Place Order</button>
+        </form>
+      <% } else { %>
+        <p class="subtitle">Your cart is empty.</p>
+        <a href="/medicinedelivery" class="btn-primary" style="display:inline-block; width:auto; padding:10px 20px; text-decoration:none;">Browse Medicines</a>
+      <% } %>
+    </div>
+  </div>
+</body>
+</html>

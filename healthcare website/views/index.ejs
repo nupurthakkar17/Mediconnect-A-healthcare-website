@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+  <title>MediConnect - Book doctors, order medicines, find care</title>
+</head>
+<body>
+  <%- include('partials/nav') %>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-text">
+        <span class="eyebrow">Your health, one platform</span>
+        <h1>Everything you need for your health, in one place</h1>
+        <p>Book doctors, check symptoms, order medicines, and find nearby care - all from a single account.</p>
+
+        <form action="/findcare" method="GET" class="hero-search">
+          <input type="hidden" name="tab" value="clinics">
+          <input type="text" name="q" placeholder="Search clinics, labs, or hospitals by location&hellip;">
+          <button type="submit">Search</button>
+        </form>
+
+        <div class="hero-quicklinks">
+          <a href="/appointments">Book a doctor</a>
+          <a href="/symptom">Check symptoms</a>
+          <a href="/medicinedelivery">Order medicines</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="stat-strip">
+      <div class="stat"><strong>5</strong><span>Specialities on call</span></div>
+      <div class="stat"><strong>24/7</strong><span>Symptom checker</span></div>
+      <div class="stat"><strong>Live</strong><span>Bed &amp; order tracking</span></div>
+      <div class="stat"><strong>3</strong><span>Cities covered</span></div>
+    </div>
+
+    <!-- Services -->
+    <section id="services">
+      <div class="section-head">
+        <h2>What would you like to do?</h2>
+        <p>Six core services, all connected to the same account and records.</p>
+      </div>
+      <div class="services-grid">
+
+        <div class="service-card">
+          <div class="icon-badge">&#128197;</div>
+          <h3>Book an Appointment</h3>
+          <p>Schedule a visit with the right specialist at a time that works for you.</p>
+          <a href="/appointments" class="button">Book Now</a>
+        </div>
+
+        <div class="service-card">
+          <div class="icon-badge">&#129517;</div>
+          <h3>Symptom Checker</h3>
+          <p>Describe what you're feeling and get likely conditions before you book.</p>
+          <a href="/symptom" class="button">Check Symptoms</a>
+        </div>
+
+        <div class="service-card">
+          <div class="icon-badge">&#128138;</div>
+          <h3>Pharmacy</h3>
+          <p>Order medicines online and track delivery status in real time.</p>
+          <a href="/medicinedelivery" class="button">Order Medicines</a>
+        </div>
+
+        <div class="service-card">
+          <div class="icon-badge">&#128205;</div>
+          <h3>Find Care</h3>
+          <p>Search free clinics, diagnostic labs, and live hospital bed availability.</p>
+          <a href="/findcare" class="button">Search Now</a>
+        </div>
+
+        <div class="service-card">
+          <div class="icon-badge">&#128202;</div>
+          <h3>Health Tracking</h3>
+          <p>Log daily vitals - steps, water, heart rate - and watch trends over time.</p>
+          <a href="/health-tracking" class="button">Track Health</a>
+        </div>
+
+        <div class="service-card">
+          <div class="icon-badge">&#128203;</div>
+          <h3>Health Reports</h3>
+          <p>Upload and access lab reports and prescriptions whenever you need them.</p>
+          <a href="/healthreports" class="button">Manage Reports</a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials">
+      <div class="section-head">
+        <h2>What our users say</h2>
+      </div>
+      <div class="testimonial-grid">
+        <div class="testimonial">
+          <p>"Booking an appointment and getting my medicines delivered used to take two separate apps. Now it's one place."</p>
+          <span>&mdash; Ananya R.</span>
+        </div>
+        <div class="testimonial">
+          <p>"The free clinic checkup search saved me a trip - I found a slot near home the same day."</p>
+          <span>&mdash; Vikram S.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reviews -->
+    <section id="reviews">
+      <h2>Share your experience</h2>
+      <p>Your feedback helps us improve.</p>
+      <form action="/submit-review" method="POST">
+        <input type="text" name="name" placeholder="Your Name" required>
+        <textarea name="review" placeholder="Your review" required></textarea>
+        <button type="submit">Submit Review</button>
+      </form>
+
+      <h3 style="margin-bottom:12px; color:var(--ink); font-size:1.1rem;">Recent reviews</h3>
+      <div class="reviews-list">
+        <% if (reviews.length === 0) { %>
+          <p style="color:var(--muted);">No reviews yet - be the first to share yours.</p>
+        <% } %>
+        <% reviews.forEach(function(review) { %>
+          <div class="review">
+            <p><strong><%= review.name %></strong></p>
+            <p><%= review.review_text %></p>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq">
+      <div class="section-head">
+        <h2>Frequently asked questions</h2>
+      </div>
+      <div class="faq-item">
+        <h3>Is the symptom checker a diagnosis?</h3>
+        <p>No. It gives an initial, informational assessment based on your symptoms so you know which specialist to book - it isn't a substitute for a doctor's diagnosis.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Are the clinic checkups really free?</h3>
+        <p>Yes - checkups booked through Find Care's clinic listings are free for everyone, no account required to browse.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Can I track my medicine order?</h3>
+        <p>Yes - every order gets a live status page that updates automatically as the pharmacy processes it, no refreshing needed.</p>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="cta">
+      <h2>Ready to take control of your health?</h2>
+      <a href="/signup" class="button">Create your free account</a>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 MediConnect. Built as a student project - not a substitute for professional medical advice.</p>
+  </footer>
+</body>
+</html>

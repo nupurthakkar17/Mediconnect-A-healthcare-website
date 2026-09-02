@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Health Tracking Report | MediConnect</title>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+
+  <div class="page-wrap" style="max-width:480px; text-align:center;">
+    <div class="card">
+      <h1>Health Tracking Report</h1>
+
+      <table class="data-table" style="text-align:left;">
+        <tr><th>Steps Walked</th><td><%= steps %></td></tr>
+        <tr><th>Water Intake</th><td><%= water %> liters</td></tr>
+        <tr><th>Calories Consumed</th><td><%= calories %> kcal</td></tr>
+        <tr><th>Heart Rate</th><td><%= heart_rate %> bpm</td></tr>
+      </table>
+
+      <% if (alert) { %>
+        <div class="alert alert-error" style="margin-top:16px;"><%= alert %></div>
+      <% } %>
+
+      <p class="subtitle" style="margin-top:16px;">Thanks for tracking your health today!</p>
+      <a href="/health-tracking" class="btn-primary" style="display:inline-block; width:auto; padding:10px 20px; text-decoration:none;">Log Another Entry</a>
+    </div>
+  </div>
+</body>
+</html>

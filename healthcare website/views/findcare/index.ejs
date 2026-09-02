@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Find Care | MediConnect</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+
+  <div class="page-wrap-wide">
+    <div class="section-head" style="text-align:left; margin-bottom:24px;">
+      <h1 style="font-size:1.8rem; color:var(--ink);">Find Care Near You</h1>
+      <p style="text-align:left;">Search clinics, diagnostic labs, and hospital bed availability in one place.</p>
+    </div>
+
+    <div class="tab-row">
+      <a href="/findcare?tab=clinics" class="tab-pill <%= tab === 'clinics' ? 'active' : '' %>">Free Clinics</a>
+      <a href="/findcare?tab=labs" class="tab-pill <%= tab === 'labs' ? 'active' : '' %>">Diagnostic Labs</a>
+      <a href="/findcare?tab=beds" class="tab-pill <%= tab === 'beds' ? 'active' : '' %>">Hospital Beds</a>
+    </div>
+
+    <% if (tab === 'beds') { %>
+      <div class="live-badge" id="live-badge"><span class="dot"></span> Live</div>
+    <% } %>
+
+    <form action="/findcare" method="GET" class="search-row" style="max-width:480px;">
+      <input type="hidden" name="tab" value="<%= tab %>">
+      <input type="text" name="q" placeholder="<%= tab === 'labs' ? 'Search by city' : 'Search by location' %>" value="<%= q %>">
+      <button type="submit">Search</button>
+    </form>
+
+    <% if (error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <% if (tab === 'clinics') { %>
+      <% results.forEach(function(c) { %>
+        <div class="result-card">
+          <div>
+            <h3><%= c.name %></h3>
+            <div class="meta">
+              <%= c.address %><br>
+              <strong>Free checkup:</strong> <%= new Date(c.free_checkup_date).toLocaleDateString() %>, <%= c.free_checkup_timings %><br>
+              <strong>Services:</strong> <%= c.services %> &middot; <strong>Phone:</strong> <%= c.phone %>
+            </div>
+          </div>
+          <a href="/findcare/clinics/<%= c.id %>/book" class="btn-secondary">Book Slot</a>
+        </div>
+      <% }) %>
+    <% } else if (tab === 'labs') { %>
+      <% results.forEach(function(l) { %>
+        <div class="result-card">
+          <div>
+            <h3><%= l.name %></h3>
+            <div class="meta">
+              <%= l.location %>, <%= l.city %> &middot; <%= l.distance %> km away<br>
+              <strong>Hours:</strong> <%= l.opening_time %> &ndash; <%= l.closing_time %><br>
+              <strong>Tests:</strong> <%= l.tests %>
+            </div>
+          </div>
+          <a href="/findcare/labs/<%= l.id %>" class="btn-secondary">View Details</a>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <table class="data-table" id="beds-table">
+        <thead>
+          <tr><th>Hospital</th><th>Location</th><th>Available Beds</th></tr>
+        </thead>
+        <tbody>
+          <% results.forEach(function(r) { %>
+            <tr data-hospital-id="<%= r.id %>">
+              <td><%= r.hospital_name %></td>
+              <td><%= r.location %></td>
+              <td class="beds-count">
+                <span class="<%= r.available_beds > 0 ? 'badge-available' : 'badge-full' %>">
+                  <%= r.available_beds > 0 ? r.available_beds + ' available' : 'Full' %>
+                </span>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+
+  <% if (tab === 'beds') { %>
+  <script>
+    var socket = io();
+    socket.emit('beds:subscribe');
+    socket.on('beds:update', function (payload) {
+      var row = document.querySelector('tr[data-hospital-id="' + payload.id + '"]');
+      if (!row) return;
+      var cell = row.querySelector('.beds-count');
+      var available = payload.available_beds;
+      cell.innerHTML = available > 0
+        ? '<span class="badge-available">' + available + ' available</span>'
+        : '<span class="badge-full">Full</span>';
+      row.classList.remove('just-updated');
+      void row.offsetWidth;
+      row.classList.add('just-updated');
+    });
+    socket.on('connect', function () { document.getElementById('live-badge').style.display = 'inline-flex'; });
+    socket.on('disconnect', function () { document.getElementById('live-badge').style.display = 'none'; });
+  </script>
+  <% } %>
+</body>
+</html>

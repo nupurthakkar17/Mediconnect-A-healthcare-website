@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Book an Appointment | MediConnect</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+
+  <div class="page-wrap">
+    <div class="card">
+      <h1>Book an Appointment</h1>
+      <p class="subtitle">Pick a doctor and date, then choose an open slot. We'll email you a confirmation.</p>
+      <div class="live-badge"><span class="dot"></span> Live availability</div>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+      <div class="alert alert-success" id="live-notice" style="display:none;"></div>
+
+      <form action="/appointments/book-appointment" method="POST" novalidate id="bookingForm">
+        <div class="field">
+          <label for="doctor">Select Doctor</label>
+          <select name="doctor_id" id="doctor" required>
+            <option value="" disabled <%= !selectedDoctor ? 'selected' : '' %>>Choose a doctor</option>
+            <% doctors.forEach(doctor => { %>
+              <option value="<%= doctor.id %>" <%= String(selectedDoctor) === String(doctor.id) ? "selected" : "" %>>
+                <%= doctor.name %> &mdash; <%= doctor.specialization %>
+              </option>
+            <% }); %>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="name">Name</label>
+          <input type="text" name="name" id="name" value="<%= name %>" required>
+        </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" name="email" id="email" value="<%= email %>" required>
+        </div>
+
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input type="tel" name="phone" id="phone" value="<%= phone %>" required pattern="[0-9+\-\s()]{7,15}">
+        </div>
+
+        <div class="field">
+          <label for="appointment_date">Date</label>
+          <input type="date" name="appointment_date" id="appointment_date" value="<%= appointment_date %>" min="<%= minDate %>" required>
+        </div>
+
+        <div class="field">
+          <label>Available Slots</label>
+          <p class="meta" id="slotHint">Choose a doctor and date to see open slots.</p>
+          <div id="slotGrid" class="slot-grid"></div>
+          <input type="hidden" name="appointment_time" id="appointment_time" value="<%= appointment_time %>" required>
+        </div>
+
+        <div class="field">
+          <label for="symptoms">Symptoms</label>
+          <textarea name="symptoms" id="symptoms" rows="3" required><%= symptoms %></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submitBtn" disabled>Book Appointment</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const ALL_SLOTS = <%- JSON.stringify(allSlots || []) %>;
+    const doctorField = document.getElementById('doctor');
+    const dateField = document.getElementById('appointment_date');
+    const slotGrid = document.getElementById('slotGrid');
+    const slotHint = document.getElementById('slotHint');
+    const timeInput = document.getElementById('appointment_time');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function renderSlots(bookedTimes) {
+      const booked = new Set(bookedTimes || []);
+      slotGrid.innerHTML = ALL_SLOTS.map(function (slot) {
+        const isBooked = booked.has(slot.value);
+        const isSelected = slot.value === timeInput.value;
+        return '<button type="button" class="slot-btn' +
+          (isBooked ? ' slot-booked' : '') +
+          (isSelected && !isBooked ? ' slot-selected' : '') +
+          '" data-value="' + slot.value + '"' +
+          (isBooked ? ' disabled' : '') +
+          '>' + slot.label + '</button>';
+      }).join('');
+    }
+
+    async function refreshSlots() {
+      const doctorId = doctorField.value;
+      const date = dateField.value;
+
+      if (!doctorId || !date) {
+        slotGrid.innerHTML = '';
+        slotHint.textContent = 'Choose a doctor and date to see open slots.';
+        timeInput.value = '';
+        submitBtn.disabled = true;
+        return;
+      }
+
+      slotHint.textContent = 'Loading availability…';
+      try {
+        const res = await fetch('/appointments/available-slots?doctor_id=' + encodeURIComponent(doctorId) + '&date=' + encodeURIComponent(date));
+        if (!res.ok) throw new Error('Request failed');
+        const data = await res.json();
+
+        if (timeInput.value && data.booked.includes(timeInput.value)) {
+          timeInput.value = '';
+        }
+
+        renderSlots(data.booked);
+        slotHint.textContent = timeInput.value
+          ? 'Slot selected.'
+          : 'Tap an open slot below.';
+        submitBtn.disabled = !timeInput.value;
+      } catch (err) {
+        slotHint.textContent = 'Could not load availability. Please try again.';
+        slotGrid.innerHTML = '';
+      }
+    }
+
+    slotGrid.addEventListener('click', function (e) {
+      const btn = e.target.closest('.slot-btn');
+      if (!btn || btn.disabled) return;
+      timeInput.value = btn.dataset.value;
+      slotGrid.querySelectorAll('.slot-btn').forEach(function (b) { b.classList.remove('slot-selected'); });
+      btn.classList.add('slot-selected');
+      slotHint.textContent = 'Slot selected.';
+      submitBtn.disabled = false;
+    });
+
+    doctorField.addEventListener('change', refreshSlots);
+    dateField.addEventListener('change', refreshSlots);
+
+    if (doctorField.value && dateField.value) {
+      refreshSlots();
+    }
+
+    var socket = io();
+    socket.emit('appointments:subscribe');
+
+    socket.on('appointment:new', function (payload) {
+      var notice = document.getElementById('live-notice');
+      notice.textContent = payload.name + ' just booked ' + payload.doctor + ' on ' + payload.appointment_date + ' at ' + payload.appointment_time + '.';
+      notice.style.display = 'block';
+      setTimeout(function () { notice.style.display = 'none'; }, 6000);
+
+      if (String(doctorField.value) === String(payload.doctor_id) && dateField.value === payload.appointment_date) {
+        refreshSlots();
+      }
+    });
+  </script>
+
+  <style>
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 8px;
+      margin: 10px 0 4px;
+    }
+    .slot-btn {
+      padding: 9px 6px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--ink);
+    }
+    .slot-btn:hover:not(:disabled) {
+      border-color: var(--brand);
+    }
+    .slot-selected {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #fff;
+      font-weight: 600;
+    }
+    .slot-booked {
+      background: var(--border);
+      color: var(--muted);
+      text-decoration: line-through;
+      cursor: not-allowed;
+    }
+  </style>
+</body>
+</html>

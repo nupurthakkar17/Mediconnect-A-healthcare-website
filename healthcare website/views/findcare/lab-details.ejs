@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Lab Details | MediConnect</title>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+
+  <div class="page-wrap" style="max-width:560px;">
+    <div class="card">
+      <% if (!lab) { %>
+        <h1>Lab not found</h1>
+        <a href="/findcare?tab=labs" class="btn-primary" style="display:inline-block; width:auto; padding:10px 20px; text-decoration:none;">Back to search</a>
+      <% } else { %>
+        <h1><%= lab.name %></h1>
+        <p class="subtitle"><%= lab.location %>, <%= lab.city %> &middot; <%= lab.distance %> km away</p>
+
+        <table class="data-table">
+          <tr><th>Contact</th><td><%= lab.contact %></td></tr>
+          <tr><th>Hours</th><td><%= lab.opening_time %> &ndash; <%= lab.closing_time %></td></tr>
+          <tr><th>Tests Available</th><td><%= lab.tests %></td></tr>
+        </table>
+
+        <a href="/findcare?tab=labs" class="btn-primary" style="display:inline-block; width:auto; padding:10px 20px; text-decoration:none; margin-top:16px;">Back to search</a>
+      <% } %>
+    </div>
+  </div>
+</body>
+</html>

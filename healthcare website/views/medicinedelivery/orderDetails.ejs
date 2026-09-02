@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Order Details | MediConnect</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+
+  <div class="page-wrap" style="max-width:640px;">
+    <div class="card">
+      <% if (!order) { %>
+        <h1>Order not found</h1>
+        <p class="subtitle">Double-check the link, or start a new order.</p>
+        <a href="/medicinedelivery" class="btn-primary" style="display:inline-block; width:auto; padding:10px 20px; text-decoration:none;">Browse Medicines</a>
+      <% } else { %>
+        <div class="alert alert-success">Order #<%= order.id %> placed successfully!</div>
+        <h1>Order Details</h1>
+        <p><strong>Delivery Address:</strong> <%= order.delivery_address %></p>
+        <p><strong>Total:</strong> ₹<%= Number(order.total_price).toFixed(2) %></p>
+
+        <h3 style="margin-top:20px;">Live Status</h3>
+        <div class="live-badge"><span class="dot"></span> Live tracking</div>
+        <div style="display:flex; gap:8px; margin:10px 0 20px;" id="status-track">
+          <% statusOrder.forEach(function(s, i) { %>
+            <div class="status-step" data-status="<%= s %>" style="flex:1; text-align:center; padding:8px 4px; border-radius:8px; font-size:0.78rem; font-weight:600; background:<%= s === order.status ? 'var(--brand)' : 'var(--brand-light)' %>; color:<%= s === order.status ? '#fff' : 'var(--brand)' %>;">
+              <%= statusLabels[s] %>
+            </div>
+          <% }) %>
+        </div>
+
+        <h3>Items</h3>
+        <table class="data-table">
+          <thead><tr><th>Medicine</th><th>Price</th><th>Qty</th></tr></thead>
+          <tbody>
+            <% items.forEach(function(item) { %>
+              <tr>
+                <td><%= item.medicine_name %></td>
+                <td>₹<%= Number(item.price).toFixed(2) %></td>
+                <td><%= item.quantity %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+
+        <button id="advance-btn" class="btn-primary" style="margin-top:20px;">Simulate next delivery step (demo)</button>
+        <p class="hint" style="margin-top:8px;">In production this would be triggered by pharmacy staff, not shown to the customer.</p>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (order) { %>
+  <script>
+    var orderId = <%= order.id %>;
+    var socket = io();
+    socket.emit('order:subscribe', orderId);
+
+    function paintStatus(status) {
+      document.querySelectorAll('.status-step').forEach(function (el) {
+        var active = el.dataset.status === status;
+        el.style.background = active ? 'var(--brand)' : 'var(--brand-light)';
+        el.style.color = active ? '#fff' : 'var(--brand)';
+      });
+    }
+
+    socket.on('order:status', function (payload) {
+      if (payload.orderId === orderId) paintStatus(payload.status);
+    });
+
+    document.getElementById('advance-btn').addEventListener('click', function () {
+      fetch('/medicinedelivery/order/' + orderId + '/advance', { method: 'POST' })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.status) paintStatus(data.status);
+          if (data.error) alert(data.error);
+        });
+    });
+  </script>
+  <% } %>
+</body>
+</html>

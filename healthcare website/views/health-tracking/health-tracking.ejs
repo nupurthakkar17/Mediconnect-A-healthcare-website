@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../partials/head') %>
+  <title>Daily Health Tracking | MediConnect</title>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+
+  <div class="page-wrap" style="max-width:480px;">
+    <div class="card">
+      <h1>Daily Health Tracking</h1>
+      <p class="subtitle">Log today's stats to keep an eye on your trends.</p>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <form action="/health-tracking" method="POST" novalidate>
+        <div class="field">
+          <label for="steps">Steps Walked</label>
+          <input type="number" id="steps" name="steps" required min="1" max="100000">
+        </div>
+        <div class="field">
+          <label for="water">Water Intake (Liters)</label>
+          <input type="number" id="water" name="water" required step="0.1" min="0.1" max="20">
+        </div>
+        <div class="field">
+          <label for="calories">Calories Consumed</label>
+          <input type="number" id="calories" name="calories" required min="1" max="10000">
+        </div>
+        <div class="field">
+          <label for="heart_rate">Heart Rate (bpm)</label>
+          <input type="number" id="heart_rate" name="heart_rate" required min="30" max="220">
+        </div>
+        <button type="submit" class="btn-primary">Submit</button>
+      </form>
+      <p class="link-row"><a href="/health-tracking/history">View my history</a></p>
+    </div>
+  </div>
+</body>
+</html>
