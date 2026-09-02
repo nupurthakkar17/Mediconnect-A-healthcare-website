@@ -20,7 +20,7 @@
 | Database | MySQL |
 | ML Service | Python, Flask, Scikit-learn, Pandas |
 | Authentication | Express Session, bcrypt |
-| Testing | Jest, Supertest, pytest |
+
 
 ## 🏗️ Architecture
 
