@@ -5,7 +5,7 @@
 ## ✨ Features
 
 - 🩺 **AI Symptom Checker** — Random Forest ML model that predicts the top 3 possible conditions from 132 symptoms across 41 diseases.
-- 📅 **Appointment Booking** — Real-time doctor availability with 30-minute slots and double-booking prevention.
+- 📅 **Appointment Booking** — doctor availability and double-booking prevention.
 - 💊 **Pharmacy** — Medicine catalog, cart, stock-aware ordering, and live order tracking.
 - 🔎 **Find Care** — Search for clinics, diagnostic labs, and hospital bed availability.
 - 📈 **Health Tracking** — Track patient vitals, lab reports, and prescriptions.
