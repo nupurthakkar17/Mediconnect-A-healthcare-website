@@ -1,34 +1,24 @@
 const express = require("express");
 const router = express.Router();
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 require("dotenv").config();
 
-// Reuse the shared pooled connection instead of opening a new one with a
-// hardcoded password.
+// Reuse the shared pooled connection.
 const db = require("../db");
 const { generateSlots } = require("./slots");
 
-// Configure Nodemailer for email functionality.
-// Email sending is skipped if EMAIL_USER/EMAIL_PASS are not configured.
-const emailConfigured = Boolean(
-  process.env.EMAIL_USER && process.env.EMAIL_PASS
-);
+// Configure Resend for email functionality.
+// If RESEND_API_KEY is not set, email sending is skipped
+// instead of crashing the application.
+const emailConfigured = Boolean(process.env.RESEND_API_KEY);
 
-const transporter = emailConfigured
-  ? nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    })
+const resend = emailConfigured
+  ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
 if (!emailConfigured) {
   console.warn(
-    "[appointments] EMAIL_USER/EMAIL_PASS not set - confirmation emails will be skipped."
+    "[appointments] RESEND_API_KEY not set - confirmation emails will be skipped."
   );
 }
 
@@ -70,9 +60,9 @@ router.get("/available-slots", (req, res) => {
   const { doctor_id, date } = req.query;
 
   if (!doctor_id || !date) {
-    return res
-      .status(400)
-      .json({ error: "doctor_id and date are required." });
+    return res.status(400).json({
+      error: "doctor_id and date are required.",
+    });
   }
 
   db.query(
@@ -82,9 +72,9 @@ router.get("/available-slots", (req, res) => {
       if (err) {
         console.error("Error fetching booked slots:", err.message);
 
-        return res
-          .status(500)
-          .json({ error: "Could not load availability." });
+        return res.status(500).json({
+          error: "Could not load availability.",
+        });
       }
 
       // MySQL TIME columns come back as "HH:MM:SS".
@@ -237,7 +227,7 @@ router.post("/book-appointment", (req, res) => {
         ? req.session.user.id
         : null;
 
-      // Save appointment to the database
+      // Save appointment to the database.
       db.query(
         "INSERT INTO appointments (user_id, doctor_id, name, email, phone, appointment_date, appointment_time, symptoms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
@@ -267,17 +257,17 @@ router.post("/book-appointment", (req, res) => {
 
           console.log("Appointment booked successfully.");
 
-          // Look up doctor's name for confirmation email/socket.
+          // Look up the doctor's name for the confirmation email/socket.
           db.query(
             "SELECT name FROM doctors WHERE id = ?",
             [doctor_id],
-            (dErr, docRows) => {
+            async (dErr, docRows) => {
               const doctorName =
                 !dErr && docRows.length > 0
                   ? docRows[0].name
                   : "your doctor";
 
-              // Broadcast new booking in real time.
+              // Broadcast the new booking in real time.
               const io = req.app.get("io");
 
               if (io) {
@@ -294,43 +284,67 @@ router.post("/book-appointment", (req, res) => {
                 );
               }
 
-              // Send confirmation email.
-              if (transporter) {
-                const mailOptions = {
-                  from: process.env.EMAIL_USER,
-                  to: email,
-                  subject: "Appointment Confirmation",
-                  html: `
-                    <h2>Appointment Confirmation</h2>
-                    <p>Dear ${name},</p>
-                    <p>Your appointment has been successfully booked with ${doctorName}.</p>
-                    <ul>
-                      <li><strong>Date:</strong> ${appointment_date}</li>
-                      <li><strong>Time:</strong> ${appointment_time}</li>
-                      <li><strong>Symptoms:</strong> ${symptoms}</li>
-                    </ul>
-                    <p>Thank you for choosing our service!</p>
-                  `,
-                };
+              // Send confirmation email using Resend HTTPS API.
+              if (resend) {
+                try {
+                  const { data, error } =
+                    await resend.emails.send({
+                      from: "MediConnect <onboarding@resend.dev>",
+                      to: [email],
+                      subject: "Appointment Confirmation",
+                      html: `
+                        <h2>Appointment Confirmation</h2>
 
-                transporter.sendMail(
-                  mailOptions,
-                  (err, info) => {
-                    if (err) {
-                      console.error(
-                        "Error sending email:",
-                        err.message
-                      );
-                    } else {
-                      console.log(
-                        "Email sent:",
-                        info.response
-                      );
-                    }
+                        <p>Dear ${name},</p>
+
+                        <p>
+                          Your appointment has been successfully booked
+                          with ${doctorName}.
+                        </p>
+
+                        <ul>
+                          <li>
+                            <strong>Date:</strong>
+                            ${appointment_date}
+                          </li>
+
+                          <li>
+                            <strong>Time:</strong>
+                            ${appointment_time}
+                          </li>
+
+                          <li>
+                            <strong>Symptoms:</strong>
+                            ${symptoms}
+                          </li>
+                        </ul>
+
+                        <p>
+                          Thank you for choosing our service!
+                        </p>
+                      `,
+                    });
+
+                  if (error) {
+                    console.error(
+                      "Error sending email:",
+                      error
+                    );
+                  } else {
+                    console.log(
+                      "Email sent successfully:",
+                      data
+                    );
                   }
-                );
+                } catch (emailError) {
+                  console.error(
+                    "Error sending email:",
+                    emailError.message
+                  );
+                }
               }
 
+              // Email failure does NOT prevent successful booking.
               res.redirect(
                 "/appointments/book-appointment-success"
               );
